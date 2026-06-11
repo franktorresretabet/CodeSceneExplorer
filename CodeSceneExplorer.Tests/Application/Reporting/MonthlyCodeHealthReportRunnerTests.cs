@@ -32,6 +32,7 @@ public sealed class MonthlyCodeHealthReportRunnerTests
         public Task<IReadOnlyList<MonthlyCodeHealthRow>> Build(
             DateOnly startInclusive,
             DateOnly endInclusive,
+            IProgress<string>? progress = null,
             CancellationToken cancellationToken = default)
         {
             Start = startInclusive;

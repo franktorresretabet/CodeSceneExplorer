@@ -15,6 +15,25 @@ var useCase = new MonthlyCodeHealthReportUseCase(
     new MonthlyPeriodGenerator(),
     new MonthlyCodeHealthAggregator());
 var runner = new MonthlyCodeHealthReportRunner(useCase, new MonthlyCodeHealthReportFormatter());
+using var cancellationTokenSource = new CancellationTokenSource();
+Console.CancelKeyPress += (_, eventArgs) =>
+{
+    eventArgs.Cancel = true;
+    cancellationTokenSource.Cancel();
+};
 
-var report = await runner.Build(DateOnly.FromDateTime(DateTime.UtcNow));
-Console.WriteLine(report);
+var progress = new Progress<string>(message => Console.WriteLine(message));
+
+try
+{
+    var report = await runner.Build(
+        DateOnly.FromDateTime(DateTime.UtcNow),
+        progress,
+        cancellationTokenSource.Token);
+
+    Console.WriteLine(report);
+}
+catch (OperationCanceledException)
+{
+    Console.WriteLine("Cancelled.");
+}
