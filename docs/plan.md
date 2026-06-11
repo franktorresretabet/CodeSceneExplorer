@@ -38,3 +38,9 @@ Build a small .NET console app that reads data from the CodeScene API and turns 
 - Done: Code health technical debt endpoint
 - Done: Repository evolution endpoints for commit activity, commits, and issues
 - Next: add DTOs and domain models for the report layer
+
+## Reporting boundary
+- The reporting use case owns monthly period generation and code health aggregation.
+- Infrastructure only fetches CodeScene data.
+- Program only wires dependencies and triggers the use case.
+- The final output is a plain monthly table.
