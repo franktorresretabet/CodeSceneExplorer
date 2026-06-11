@@ -30,3 +30,11 @@ Build a small .NET console app that reads data from the CodeScene API and turns 
 2. Analyses
 3. Code health
 4. Repository evolution
+
+## Current status
+- Done: read-only port, configurable base URL, file-based token, explicit date ranges
+- Done: Projects read endpoints
+- Done: Analyses read endpoints
+- Done: Code health technical debt endpoint
+- Done: Repository evolution endpoints for commit activity, commits, and issues
+- Next: add DTOs and domain models for the report layer
