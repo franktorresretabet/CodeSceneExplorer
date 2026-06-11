@@ -21,3 +21,22 @@ Small .NET 10 console app for reading CodeScene data and shaping it into a repor
 - Code health
 - Repository evolution
 
+## Prerequisites
+
+- .NET 10 SDK
+- Access to a CodeScene instance or API endpoint
+- Any required authentication credentials for the CodeScene API
+
+## Getting Started
+
+1. Restore and build the solution.
+
+	```bash
+	dotnet build CodeSceneExplorer.slnx
+	```
+
+2. Run the console application.
+
+	```bash
+	dotnet run --project CodeSceneExplorer/CodeSceneExplorer.csproj
+	```
