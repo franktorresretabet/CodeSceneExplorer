@@ -66,10 +66,18 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
         DateRange period,
         CancellationToken cancellationToken)
     {
-        var response = await api.GetAnalysesByDateAsync(projectId, period, cancellationToken).ConfigureAwait(false);
-        var analysisIds = ParseAnalysisIds(response);
+        var response = await api.ListAnalysesAsync(projectId, cancellationToken).ConfigureAwait(false);
+        var analyses = ParseAnalyses(response);
 
-        return analysisIds.Count == 0 ? null : analysisIds[0];
+        return analyses
+            .Where(analysis =>
+            {
+                var analysisDate = DateOnly.FromDateTime(analysis.AnalysisTime.UtcDateTime);
+                return analysisDate >= period.From && analysisDate <= period.To;
+            })
+            .OrderByDescending(analysis => analysis.AnalysisTime)
+            .Select(analysis => (int?)analysis.Id)
+            .FirstOrDefault();
     }
 
     private static ProjectPage ParseProjectsPage(string response)
@@ -98,7 +106,7 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
         return new ProjectPage(projectIds, maxPages);
     }
 
-    private static IReadOnlyList<int> ParseAnalysisIds(string response)
+    private static IReadOnlyList<AnalysisEntry> ParseAnalyses(string response)
     {
         using var document = JsonDocument.Parse(response);
 
@@ -107,17 +115,20 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
             return [];
         }
 
-        var analysisIds = new List<int>();
+        var analysisEntries = new List<AnalysisEntry>();
 
         foreach (var item in analyses.EnumerateArray())
         {
-            if (item.TryGetProperty("id", out var idProperty) && idProperty.TryGetInt32(out var analysisId))
+            if (item.TryGetProperty("id", out var idProperty)
+                && idProperty.TryGetInt32(out var analysisId)
+                && item.TryGetProperty("analysistime", out var timeProperty)
+                && DateTimeOffset.TryParse(timeProperty.GetString(), out var analysisTime))
             {
-                analysisIds.Add(analysisId);
+                analysisEntries.Add(new AnalysisEntry(analysisId, analysisTime));
             }
         }
 
-        return analysisIds;
+        return analysisEntries;
     }
 
     private static decimal? TryExtractMonthScore(string response)
@@ -165,4 +176,6 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
     }
 
     private sealed record ProjectPage(IReadOnlyList<int> ProjectIds, int MaxPages);
+
+    private sealed record AnalysisEntry(int Id, DateTimeOffset AnalysisTime);
 }

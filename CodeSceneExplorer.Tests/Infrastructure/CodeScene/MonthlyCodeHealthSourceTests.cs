@@ -49,13 +49,24 @@ public sealed class MonthlyCodeHealthSourceTests
 
         public Task<string> GetProjectAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
-        public Task<string> ListAnalysesAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("[]");
+        public Task<string> ListAnalysesAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            var payload = projectId == 1
+                ? """
+                  {"page":1,"max_pages":1,"analyses":[{"id":101,"analysistime":"2025-09-15T08:00:00Z"},{"id":102,"analysistime":"2025-10-15T08:00:00Z"}]}
+                  """
+                : """
+                  {"page":1,"max_pages":1,"analyses":[{"id":201,"analysistime":"2025-09-20T08:00:00Z"},{"id":202,"analysistime":"2025-10-20T08:00:00Z"}]}
+                  """;
+
+            return Task.FromResult(payload);
+        }
 
         public Task<string> GetLatestAnalysisAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
         public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default)
         {
-            var payload = analysisId == "17727"
+            var payload = analysisId is "101"
                 ? """
                   {"high_level_metrics":{"month_score":4.59}}
                   """
@@ -78,17 +89,6 @@ public sealed class MonthlyCodeHealthSourceTests
 
         public Task<string> ListAnalysisIssuesAsync(int projectId, string analysisId, int page = 1, int pageSize = 200, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
-        public Task<string> GetAnalysesByDateAsync(int projectId, DateRange period, CancellationToken cancellationToken = default)
-        {
-            var payload = projectId == 1
-                ? """
-                  {"page":1,"max_pages":1,"analyses":[{"id":17727,"name":"REPAY","analysistime":"2026-06-11T06:21:59Z","ref":"/api/v2/projects/1/analyses/17727"}]}
-                  """
-                : """
-                  {"page":1,"max_pages":1,"analyses":[{"id":17728,"name":"REPAY","analysistime":"2026-06-11T06:10:59Z","ref":"/api/v2/projects/2/analyses/17728"}]}
-                  """;
-
-            return Task.FromResult(payload);
-        }
+        public Task<string> GetAnalysesByDateAsync(int projectId, DateRange period, CancellationToken cancellationToken = default) => Task.FromResult("{}");
     }
 }
