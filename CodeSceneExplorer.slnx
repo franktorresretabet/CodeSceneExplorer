@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="CodeSceneExplorer/CodeSceneExplorer.csproj" />
+  <Project Path="CodeSceneExplorer.Tests/CodeSceneExplorer.Tests.csproj" />
 </Solution>
