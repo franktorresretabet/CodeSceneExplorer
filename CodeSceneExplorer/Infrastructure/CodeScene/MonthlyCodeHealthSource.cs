@@ -17,8 +17,15 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
 
         foreach (var projectId in await ListProjectIdsAsync(cancellationToken).ConfigureAwait(false))
         {
-            var response = await api.GetAnalysesByDateAsync(projectId, period, cancellationToken).ConfigureAwait(false);
-            var codeHealth = TryExtractCodeHealth(response);
+            var analysisId = await GetLatestAnalysisIdAsync(projectId, period, cancellationToken).ConfigureAwait(false);
+            if (analysisId is null)
+            {
+                continue;
+            }
+
+            var response = await api.GetAnalysisAsync(projectId, analysisId.Value.ToString(), cancellationToken)
+                .ConfigureAwait(false);
+            var codeHealth = TryExtractMonthScore(response);
 
             if (codeHealth.HasValue)
             {
@@ -33,37 +40,50 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
     {
         var projectIds = new List<int>();
         var page = 1;
+        var maxPages = 1;
 
-        while (true)
+        while (page <= maxPages)
         {
-            var response = await api.ListProjectsAsync(page: page, fields: "id", cancellationToken: cancellationToken)
+            var response = await api.ListProjectsAsync(page: page, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
-            var currentPageProjectIds = ExtractProjectIds(response);
+            var pageData = ParseProjectsPage(response);
+            maxPages = pageData.MaxPages;
 
-            if (currentPageProjectIds.Count == 0)
+            if (pageData.ProjectIds.Count == 0)
             {
                 break;
             }
 
-            projectIds.AddRange(currentPageProjectIds);
+            projectIds.AddRange(pageData.ProjectIds);
             page++;
         }
 
         return projectIds;
     }
 
-    private static IReadOnlyList<int> ExtractProjectIds(string response)
+    private async Task<int?> GetLatestAnalysisIdAsync(
+        int projectId,
+        DateRange period,
+        CancellationToken cancellationToken)
+    {
+        var response = await api.GetAnalysesByDateAsync(projectId, period, cancellationToken).ConfigureAwait(false);
+        var analysisIds = ParseAnalysisIds(response);
+
+        return analysisIds.Count == 0 ? null : analysisIds[0];
+    }
+
+    private static ProjectPage ParseProjectsPage(string response)
     {
         using var document = JsonDocument.Parse(response);
 
-        if (!document.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
+        if (!document.RootElement.TryGetProperty("projects", out var projects) || projects.ValueKind != JsonValueKind.Array)
         {
-            return [];
+            return new ProjectPage([], 1);
         }
 
         var projectIds = new List<int>();
 
-        foreach (var item in items.EnumerateArray())
+        foreach (var item in projects.EnumerateArray())
         {
             if (item.TryGetProperty("id", out var idProperty) && idProperty.TryGetInt32(out var projectId))
             {
@@ -71,27 +91,56 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
             }
         }
 
-        return projectIds;
+        var maxPages = document.RootElement.TryGetProperty("max_pages", out var maxPagesProperty) && maxPagesProperty.TryGetInt32(out var parsedMaxPages)
+            ? parsedMaxPages
+            : 1;
+
+        return new ProjectPage(projectIds, maxPages);
     }
 
-    private static decimal? TryExtractCodeHealth(string response)
+    private static IReadOnlyList<int> ParseAnalysisIds(string response)
     {
         using var document = JsonDocument.Parse(response);
-        return TryExtractCodeHealth(document.RootElement);
+
+        if (!document.RootElement.TryGetProperty("analyses", out var analyses) || analyses.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var analysisIds = new List<int>();
+
+        foreach (var item in analyses.EnumerateArray())
+        {
+            if (item.TryGetProperty("id", out var idProperty) && idProperty.TryGetInt32(out var analysisId))
+            {
+                analysisIds.Add(analysisId);
+            }
+        }
+
+        return analysisIds;
     }
 
-    private static decimal? TryExtractCodeHealth(JsonElement element)
+    private static decimal? TryExtractMonthScore(string response)
+    {
+        using var document = JsonDocument.Parse(response);
+        return TryExtractMonthScore(document.RootElement);
+    }
+
+    private static decimal? TryExtractMonthScore(JsonElement element)
     {
         if (element.ValueKind == JsonValueKind.Object)
         {
-            if (element.TryGetProperty("now", out var nowProperty) && nowProperty.TryGetDecimal(out var codeHealth))
+            if (element.TryGetProperty("high_level_metrics", out var highLevelMetrics)
+                && highLevelMetrics.ValueKind == JsonValueKind.Object
+                && highLevelMetrics.TryGetProperty("month_score", out var monthScoreProperty)
+                && monthScoreProperty.TryGetDecimal(out var codeHealth))
             {
                 return codeHealth;
             }
 
             foreach (var property in element.EnumerateObject())
             {
-                var nestedCodeHealth = TryExtractCodeHealth(property.Value);
+                var nestedCodeHealth = TryExtractMonthScore(property.Value);
 
                 if (nestedCodeHealth.HasValue)
                 {
@@ -103,7 +152,7 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
         {
             foreach (var item in element.EnumerateArray())
             {
-                var nestedCodeHealth = TryExtractCodeHealth(item);
+                var nestedCodeHealth = TryExtractMonthScore(item);
 
                 if (nestedCodeHealth.HasValue)
                 {
@@ -114,4 +163,6 @@ public sealed class MonthlyCodeHealthSource(ICodeSceneApi api) : IMonthlyCodeHea
 
         return null;
     }
+
+    private sealed record ProjectPage(IReadOnlyList<int> ProjectIds, int MaxPages);
 }

@@ -23,12 +23,12 @@ public sealed class MonthlyCodeHealthSourceTests
             reading =>
             {
                 Assert.Equal("2025-09", reading.YearMonth);
-                Assert.Equal(12.5m, reading.CodeHealth);
+                Assert.Equal(4.59m, reading.CodeHealth);
             },
             reading =>
             {
                 Assert.Equal("2025-09", reading.YearMonth);
-                Assert.Equal(17.5m, reading.CodeHealth);
+                Assert.Equal(6.12m, reading.CodeHealth);
             });
     }
 
@@ -38,10 +38,10 @@ public sealed class MonthlyCodeHealthSourceTests
         {
             var payload = page == 1
                 ? """
-                  {"items":[{"id":1},{"id":2}]}
+                  {"page":1,"max_pages":1,"projects":[{"id":1},{"id":2}]}
                   """
                 : """
-                  {"items":[]}
+                  {"page":2,"max_pages":1,"projects":[]}
                   """;
 
             return Task.FromResult(payload);
@@ -53,7 +53,18 @@ public sealed class MonthlyCodeHealthSourceTests
 
         public Task<string> GetLatestAnalysisAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
-        public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
+        public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default)
+        {
+            var payload = analysisId == "17727"
+                ? """
+                  {"high_level_metrics":{"month_score":4.59}}
+                  """
+                : """
+                  {"high_level_metrics":{"month_score":6.12}}
+                  """;
+
+            return Task.FromResult(payload);
+        }
 
         public Task<string> ListDeltaAnalysesAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
@@ -71,10 +82,10 @@ public sealed class MonthlyCodeHealthSourceTests
         {
             var payload = projectId == 1
                 ? """
-                  {"items":[{"analysis":{"code_health":{"now":12.5}}}]}
+                  {"page":1,"max_pages":1,"analyses":[{"id":17727,"name":"REPAY","analysistime":"2026-06-11T06:21:59Z","ref":"/api/v2/projects/1/analyses/17727"}]}
                   """
                 : """
-                  {"items":[{"analysis":{"code_health":{"now":17.5}}}]}
+                  {"page":1,"max_pages":1,"analyses":[{"id":17728,"name":"REPAY","analysistime":"2026-06-11T06:10:59Z","ref":"/api/v2/projects/2/analyses/17728"}]}
                   """;
 
             return Task.FromResult(payload);

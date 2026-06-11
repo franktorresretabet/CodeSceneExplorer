@@ -4,7 +4,7 @@ public sealed class CodeSceneApiOptions
 {
     public const string BaseAddressEnvironmentVariable = "CODESCENE_API_BASE_URL";
     public const string AccessTokenFileName = "CodeSceneApiToken.txt";
-    public static readonly Uri DefaultBaseAddress = new("https://codescene.ekasa.local/v2/");
+    public static readonly Uri DefaultBaseAddress = new("https://codescene.ekasa.local/api/v2/");
 
     public required Uri BaseAddress { get; init; }
 
