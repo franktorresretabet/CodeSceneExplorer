@@ -13,7 +13,7 @@ public interface ICodeSceneApi
 
     Task<string> GetProjectAsync(int projectId, CancellationToken cancellationToken = default);
 
-    Task<string> ListAnalysesAsync(int projectId, CancellationToken cancellationToken = default);
+    Task<string> ListAnalysesAsync(int projectId, int page = 1, CancellationToken cancellationToken = default);
 
     Task<string> GetLatestAnalysisAsync(int projectId, CancellationToken cancellationToken = default);
 

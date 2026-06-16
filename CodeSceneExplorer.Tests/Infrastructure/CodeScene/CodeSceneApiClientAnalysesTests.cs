@@ -219,7 +219,7 @@ public sealed class CodeSceneApiClientAnalysesTests
         Assert.Equal("[]", result);
         Assert.Single(requests);
         Assert.Equal(HttpMethod.Get, requests[0].Method);
-        Assert.Equal("https://api.codescene.io/v2/projects/42/analyses", requests[0].RequestUri!.ToString());
+        Assert.Equal("https://api.codescene.io/v2/projects/42/analyses?page=1", requests[0].RequestUri!.ToString());
     }
 
     private sealed class RecordingHandler(List<HttpRequestMessage> requests) : HttpMessageHandler

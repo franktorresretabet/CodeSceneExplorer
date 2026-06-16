@@ -28,9 +28,9 @@ public sealed class CodeSceneApiClient(HttpClient httpClient, CodeSceneApiOption
         return await SendAsync($"projects/{projectId}", cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<string> ListAnalysesAsync(int projectId, CancellationToken cancellationToken = default)
+    public async Task<string> ListAnalysesAsync(int projectId, int page = 1, CancellationToken cancellationToken = default)
     {
-        return await SendAsync($"projects/{projectId}/analyses", cancellationToken).ConfigureAwait(false);
+        return await SendAsync($"projects/{projectId}/analyses?page={page}", cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<string> GetLatestAnalysisAsync(int projectId, CancellationToken cancellationToken = default)
