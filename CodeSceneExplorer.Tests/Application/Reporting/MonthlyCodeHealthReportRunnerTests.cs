@@ -1,4 +1,5 @@
 using CodeSceneExplorer.Application.Reporting;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CodeSceneExplorer.Tests.Application.Reporting;
@@ -6,10 +7,10 @@ namespace CodeSceneExplorer.Tests.Application.Reporting;
 public sealed class MonthlyCodeHealthReportRunnerTests
 {
     [Fact]
-    public async Task Build_uses_september_last_year_as_the_start_date()
+    public async Task Build_uses_september_last_year_as_the_start_date_when_no_config()
     {
         var useCase = new FakeMonthlyCodeHealthReportUseCase();
-        var sut = new MonthlyCodeHealthReportRunner(useCase, new MonthlyCodeHealthReportFormatter());
+        var sut = new MonthlyCodeHealthReportRunner(useCase, new MonthlyCodeHealthReportFormatter(), Options.Create(new ReportOptions()));
 
         var result = await sut.Build(new DateOnly(2026, 6, 11));
 
@@ -21,6 +22,20 @@ public sealed class MonthlyCodeHealthReportRunnerTests
 | 2025-09 | 15 |
 | 2025-10 | 30 |
 """, result);
+    }
+
+    [Fact]
+    public async Task Build_uses_configured_start_date_when_set()
+    {
+        var useCase = new FakeMonthlyCodeHealthReportUseCase();
+        var sut = new MonthlyCodeHealthReportRunner(
+            useCase,
+            new MonthlyCodeHealthReportFormatter(),
+            Options.Create(new ReportOptions { StartDate = "2026-05-01" }));
+
+        await sut.Build(new DateOnly(2026, 6, 11));
+
+        Assert.Equal(new DateOnly(2026, 5, 1), useCase.Start);
     }
 
     private sealed class FakeMonthlyCodeHealthReportUseCase : IMonthlyCodeHealthReportUseCase

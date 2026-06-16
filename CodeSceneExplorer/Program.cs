@@ -48,6 +48,7 @@ internal class Program
         builder.Logging.ClearProviders();
         builder.Logging.AddProvider(new Log4NetLoggerProvider());
 
+        builder.Services.Configure<ReportOptions>(builder.Configuration.GetSection("Report"));
         builder.Services.AddSingleton(CodeSceneApiOptions.FromEnvironment());
         builder.Services.AddSingleton(serviceProvider =>
         {
