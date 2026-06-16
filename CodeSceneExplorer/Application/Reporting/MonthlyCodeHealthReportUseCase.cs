@@ -114,6 +114,7 @@ public sealed class MonthlyCodeHealthReportUseCase(
 
                 return new MonthlyCodeHealthThresholdCounts(
                     period.Label,
+                    periodReadings.Count(),
                     periodReadings.Count(reading => reading.CodeHealth < 5m),
                     periodReadings.Count(reading => reading.CodeHealth < 7m),
                     periodReadings.Count(reading => reading.CodeHealth < 8m));

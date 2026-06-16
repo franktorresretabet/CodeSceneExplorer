@@ -33,17 +33,17 @@ public sealed class MonthlyCodeHealthReportFormatter
         IReadOnlyList<MonthlyCodeHealthThresholdCounts> thresholdCounts)
     {
         var countsByMonth = thresholdCounts.ToDictionary(counts => counts.YearMonth);
-        builder.AppendLine("| year-month | average code health | < 5 | < 7 | < 8 |");
-        builder.AppendLine("| --- | ---: | ---: | ---: | ---: |");
+        builder.AppendLine("| year-month | average code health | projects | < 5 | < 7 | < 8 |");
+        builder.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: |");
 
         foreach (var row in rows)
         {
             var counts = countsByMonth.TryGetValue(row.YearMonth, out var monthlyCounts)
                 ? monthlyCounts
-                : new MonthlyCodeHealthThresholdCounts(row.YearMonth, 0, 0, 0);
+                : new MonthlyCodeHealthThresholdCounts(row.YearMonth, 0, 0, 0, 0);
 
             builder.AppendLine(
-                $"| {row.YearMonth} | {row.AverageCodeHealth.ToString(CultureInfo.InvariantCulture)} | {counts.Below5} | {counts.Below7} | {counts.Below8} |");
+                $"| {row.YearMonth} | {row.AverageCodeHealth.ToString(CultureInfo.InvariantCulture)} | {counts.TotalProjects} | {counts.Below5} | {counts.Below7} | {counts.Below8} |");
         }
 
         builder.AppendLine();

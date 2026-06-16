@@ -23,6 +23,7 @@ public sealed record ProjectCodeHealthTrend(
 
 public sealed record MonthlyCodeHealthThresholdCounts(
     string YearMonth,
+    int TotalProjects,
     int Below5,
     int Below7,
     int Below8);

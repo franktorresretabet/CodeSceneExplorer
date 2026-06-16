@@ -17,10 +17,10 @@ public sealed class MonthlyCodeHealthReportFormatterTests
         });
 
         Assert.Equal("""
-| year-month | average code health | < 5 | < 7 | < 8 |
-| --- | ---: | ---: | ---: | ---: |
-| 2025-09 | 15 | 0 | 0 | 0 |
-| 2025-10 | 30 | 0 | 0 | 0 |
+| year-month | average code health | projects | < 5 | < 7 | < 8 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2025-09 | 15 | 0 | 0 | 0 | 0 |
+| 2025-10 | 30 | 0 | 0 | 0 | 0 |
 """, result);
     }
 
@@ -34,8 +34,8 @@ public sealed class MonthlyCodeHealthReportFormatterTests
                 new MonthlyCodeHealthRow("2025-10", 30m)
             ],
             [
-                new MonthlyCodeHealthThresholdCounts("2025-09", 1, 2, 3),
-                new MonthlyCodeHealthThresholdCounts("2025-10", 4, 5, 6)
+                new MonthlyCodeHealthThresholdCounts("2025-09", 10, 1, 2, 3),
+                new MonthlyCodeHealthThresholdCounts("2025-10", 11, 4, 5, 6)
             ],
             [
                 new ProjectCodeHealthTrend(
@@ -68,8 +68,8 @@ public sealed class MonthlyCodeHealthReportFormatterTests
 
         var result = sut.Format(report);
 
-        Assert.Contains("| 2025-09 | 15 | 1 | 2 | 3 |", result);
-        Assert.Contains("| 2025-10 | 30 | 4 | 5 | 6 |", result);
+        Assert.Contains("| 2025-09 | 15 | 10 | 1 | 2 | 3 |", result);
+        Assert.Contains("| 2025-10 | 30 | 11 | 4 | 5 | 6 |", result);
         Assert.Contains("## Projects declining vs improving in the last 3 months", result);
         Assert.Contains("| 2025-07 to 2025-10 | 4 | 5 | 6 |", result);
         Assert.Contains("### Declining projects", result);
