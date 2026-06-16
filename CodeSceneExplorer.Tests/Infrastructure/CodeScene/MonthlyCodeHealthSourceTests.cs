@@ -35,12 +35,12 @@ public sealed class MonthlyCodeHealthSourceTests
 
         Assert.Contains(
             logger.Messages,
-            message => message.Contains("selected analysis 102", StringComparison.Ordinal)
+            message => message.Contains("KPI sample from", StringComparison.Ordinal)
                 && message.Contains("2025-10-15", StringComparison.Ordinal)
                 && message.Contains("6.12", StringComparison.Ordinal));
         Assert.Contains(
             logger.Messages,
-            message => message.Contains("selected analysis 201", StringComparison.Ordinal)
+            message => message.Contains("KPI sample from", StringComparison.Ordinal)
                 && message.Contains("2025-09-20", StringComparison.Ordinal)
                 && message.Contains("4.59", StringComparison.Ordinal));
     }
@@ -79,33 +79,11 @@ public sealed class MonthlyCodeHealthSourceTests
 
         public Task<string> GetProjectAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
-        public Task<string> ListAnalysesAsync(int projectId, int page = 1, CancellationToken cancellationToken = default)
-        {
-            var payload = projectId == 1
-                ? """
-                  {"page":1,"max_pages":1,"analyses":[{"id":101,"analysistime":"2025-09-15T08:00:00Z"},{"id":102,"analysistime":"2025-10-15T08:00:00Z"}]}
-                  """
-                : """
-                  {"page":1,"max_pages":1,"analyses":[{"id":201,"analysistime":"2025-09-20T08:00:00Z"}]}
-                  """;
-
-            return Task.FromResult(payload);
-        }
+        public Task<string> ListAnalysesAsync(int projectId, int page = 1, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
         public Task<string> GetLatestAnalysisAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
-        public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default)
-        {
-            var payload = analysisId is "102"
-                ? """
-                  {"high_level_metrics":{"month_score":6.12}}
-                  """
-                : """
-                  {"high_level_metrics":{"month_score":4.59}}
-                  """;
-
-            return Task.FromResult(payload);
-        }
+        public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
         public Task<string> ListDeltaAnalysesAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
@@ -118,6 +96,19 @@ public sealed class MonthlyCodeHealthSourceTests
         public Task<string> ListAnalysisCommitsAsync(int projectId, string analysisId, int page = 1, int pageSize = 200, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
         public Task<string> ListAnalysisIssuesAsync(int projectId, string analysisId, int page = 1, int pageSize = 200, CancellationToken cancellationToken = default) => Task.FromResult("[]");
+
+        public Task<string> GetKpiTrendCodeHealthAverageAsync(int projectId, DateOnly? start = null, DateOnly? end = null, CancellationToken cancellationToken = default)
+        {
+            var payload = projectId == 1
+                ? """
+                  [{"date":"2025-09-15","kpi":6.00},{"date":"2025-10-15","kpi":6.12}]
+                  """
+                : """
+                  [{"date":"2025-09-20","kpi":4.59}]
+                  """;
+
+            return Task.FromResult(payload);
+        }
 
         public Task<string> GetAnalysesByDateAsync(int projectId, DateRange period, CancellationToken cancellationToken = default) => Task.FromResult("{}");
     }
@@ -134,13 +125,11 @@ public sealed class MonthlyCodeHealthSourceTests
 
         public Task<string> GetProjectAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
-        public Task<string> ListAnalysesAsync(int projectId, int page = 1, CancellationToken cancellationToken = default) =>
-            Task.FromResult("""{"page":1,"max_pages":1,"analyses":[{"id":301,"analysistime":"2025-08-10T08:00:00Z"}]}""");
+        public Task<string> ListAnalysesAsync(int projectId, int page = 1, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
         public Task<string> GetLatestAnalysisAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
-        public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default) =>
-            Task.FromResult("""{"high_level_metrics":{"month_score":5.00}}""");
+        public Task<string> GetAnalysisAsync(int projectId, string analysisId, CancellationToken cancellationToken = default) => Task.FromResult("{}");
 
         public Task<string> ListDeltaAnalysesAsync(int projectId, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
@@ -153,6 +142,9 @@ public sealed class MonthlyCodeHealthSourceTests
         public Task<string> ListAnalysisCommitsAsync(int projectId, string analysisId, int page = 1, int pageSize = 200, CancellationToken cancellationToken = default) => Task.FromResult("[]");
 
         public Task<string> ListAnalysisIssuesAsync(int projectId, string analysisId, int page = 1, int pageSize = 200, CancellationToken cancellationToken = default) => Task.FromResult("[]");
+
+        public Task<string> GetKpiTrendCodeHealthAverageAsync(int projectId, DateOnly? start = null, DateOnly? end = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult("""[{"date":"2025-08-10","kpi":5.00}]""");
 
         public Task<string> GetAnalysesByDateAsync(int projectId, DateRange period, CancellationToken cancellationToken = default) => Task.FromResult("{}");
     }

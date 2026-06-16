@@ -54,6 +54,12 @@ public interface ICodeSceneApi
         int pageSize = 200,
         CancellationToken cancellationToken = default);
 
+    Task<string> GetKpiTrendCodeHealthAverageAsync(
+        int projectId,
+        DateOnly? start = null,
+        DateOnly? end = null,
+        CancellationToken cancellationToken = default);
+
     Task<string> GetAnalysesByDateAsync(
         int projectId,
         DateRange period,

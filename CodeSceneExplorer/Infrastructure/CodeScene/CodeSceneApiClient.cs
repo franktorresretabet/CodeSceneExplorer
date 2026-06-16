@@ -110,6 +110,20 @@ public sealed class CodeSceneApiClient(HttpClient httpClient, CodeSceneApiOption
         return await SendAsync(requestUri, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<string> GetKpiTrendCodeHealthAverageAsync(
+        int projectId,
+        DateOnly? start = null,
+        DateOnly? end = null,
+        CancellationToken cancellationToken = default)
+    {
+        var requestUri = BuildUri(
+            $"projects/{projectId}/kpi-trend/code-health/average",
+            ("start", start?.ToString("yyyy-MM-dd")),
+            ("end", end?.ToString("yyyy-MM-dd")));
+
+        return await SendAsync(requestUri, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<string> GetAnalysesByDateAsync(
         int projectId,
         DateRange period,
