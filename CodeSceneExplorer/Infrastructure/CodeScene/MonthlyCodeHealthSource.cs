@@ -34,7 +34,7 @@ public sealed class MonthlyCodeHealthSource(
                 continue;
             }
 
-            readings.Add(new MonthlyCodeHealthReading(start.ToString("yyyy-MM"), sample.Kpi));
+            readings.Add(new MonthlyCodeHealthReading(start.ToString("yyyy-MM"), sample.Kpi, projectId));
             logger?.LogInformation(
                 "Project {ProjectId} month {YearMonth}: KPI sample from {SampleDate:yyyy-MM-dd} with code health {CodeHealth}.",
                 projectId,

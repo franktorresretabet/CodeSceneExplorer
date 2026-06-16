@@ -1,6 +1,6 @@
 # CodeScene Explorer
 
-Small .NET 10 console app for reading CodeScene data and shaping it into a report.
+Small .NET 10 console app for reading CodeScene data and shaping it into a monthly code health report.
 
 ## Structure
 - `CodeSceneExplorer/Domain` - shared domain types
@@ -15,12 +15,35 @@ Small .NET 10 console app for reading CodeScene data and shaping it into a repor
 - API token loaded from `~\CodeSceneApiToken.txt`
 - Explicit date ranges for reproducible reports
 - Monthly report output as a table
+- Uses CodeScene KPI trend data as the source of monthly code health
+
+## Configuration
+
+The app reads configuration from `CodeSceneExplorer/appsettings.json` and supports CLI overrides through the .NET configuration system.
+
+- `Report:StartDate` - first month to include in the report. Example: `2025-03-01`
+- `Report:ScoreLimit` - optional decimal threshold. Projects whose readings are always above this value are excluded before monthly averaging. Example: `9.0`
+
+Examples:
+
+```bash
+dotnet run --project CodeSceneExplorer/CodeSceneExplorer.csproj -- --Report:StartDate 2025-03-01
+dotnet run --project CodeSceneExplorer/CodeSceneExplorer.csproj -- --Report:ScoreLimit 9.0
+```
+
+The report writes structured logs through log4net to `CodeSceneExplorer/bin/<configuration>/net10.0/log/`.
 
 ## Scope
 - Projects
-- Analyses
 - Code health
-- Repository evolution
+- KPI trends
+
+## Notes for new contributors
+
+- The report collects the last KPI sample on or before each month end for every project, then aggregates the remaining readings by month.
+- If a score limit is configured, exclusion happens after fetching the full window of data and before monthly averaging.
+- `appsettings.json` is copied to the output folder, so changes there affect the next run without code changes.
+- `log4net.config` controls file logging; the file name pattern is `yyyyMMdd-HHmmss.CodeSceneExplorer.log`.
 
 ## Prerequisites
 
@@ -40,4 +63,10 @@ Small .NET 10 console app for reading CodeScene data and shaping it into a repor
 
 	```bash
 	dotnet run --project CodeSceneExplorer/CodeSceneExplorer.csproj
+	```
+
+3. Run the tests.
+
+	```bash
+	dotnet test
 	```

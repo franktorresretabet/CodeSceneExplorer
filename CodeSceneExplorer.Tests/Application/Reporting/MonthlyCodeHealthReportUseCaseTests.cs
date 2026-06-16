@@ -1,4 +1,5 @@
 using CodeSceneExplorer.Application.Reporting;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CodeSceneExplorer.Tests.Application.Reporting;
@@ -52,6 +53,32 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
             {
                 Assert.Equal("2025-10", row.YearMonth);
                 Assert.Equal(0m, row.AverageCodeHealth);
+            });
+    }
+
+    [Fact]
+    public async Task Build_excludes_projects_that_are_always_above_the_score_limit()
+    {
+        var source = new ScoreLimitMonthlyCodeHealthSource();
+        var sut = new MonthlyCodeHealthReportUseCase(
+            source,
+            new MonthlyPeriodGenerator(),
+            new MonthlyCodeHealthAggregator(),
+            Options.Create(new ReportOptions { ScoreLimit = 8m }));
+
+        var result = await sut.Build(new DateOnly(2025, 9, 10), new DateOnly(2025, 10, 20));
+
+        Assert.Collection(
+            result,
+            row =>
+            {
+                Assert.Equal("2025-09", row.YearMonth);
+                Assert.Equal(6m, row.AverageCodeHealth);
+            },
+            row =>
+            {
+                Assert.Equal("2025-10", row.YearMonth);
+                Assert.Equal(7m, row.AverageCodeHealth);
             });
     }
 
@@ -137,6 +164,28 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
                 start.Month == 9
                     ? [new MonthlyCodeHealthReading("2025-09", 15)]
                     : [];
+
+            return Task.FromResult(readings);
+        }
+    }
+
+    private sealed class ScoreLimitMonthlyCodeHealthSource : IMonthlyCodeHealthSource
+    {
+        public Task<IReadOnlyList<MonthlyCodeHealthReading>> GetReadingsAsync(
+            DateOnly start,
+            DateOnly end,
+            CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<MonthlyCodeHealthReading> readings =
+                start.Month == 9
+                    ? [
+                        new MonthlyCodeHealthReading("2025-09", 6m, 1),
+                        new MonthlyCodeHealthReading("2025-09", 9m, 2)
+                    ]
+                    : [
+                        new MonthlyCodeHealthReading("2025-10", 7m, 1),
+                        new MonthlyCodeHealthReading("2025-10", 9.5m, 2)
+                    ];
 
             return Task.FromResult(readings);
         }
