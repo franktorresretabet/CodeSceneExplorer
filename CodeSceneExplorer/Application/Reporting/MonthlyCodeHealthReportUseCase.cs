@@ -64,7 +64,7 @@ public sealed class MonthlyCodeHealthReportUseCase(
             .Take(3)
             .ToList();
 
-        var recentTrendSummary = BuildRecentTrendSummary(periods, projectMonthlyReadings);
+        var recentTrendSummary = BuildRecentTrendSummary(periods, projectMonthlyReadings, projectTrends);
 
         return new MonthlyCodeHealthReport(rows, thresholdCounts, largestRegressions, recentTrendSummary);
     }
@@ -123,7 +123,8 @@ public sealed class MonthlyCodeHealthReportUseCase(
 
     private static MonthlyCodeHealthRecentTrendSummary? BuildRecentTrendSummary(
         IReadOnlyList<MonthlyPeriod> periods,
-        IReadOnlyDictionary<int, IReadOnlyList<MonthlyCodeHealthReading>> projectMonthlyReadings)
+        IReadOnlyDictionary<int, IReadOnlyList<MonthlyCodeHealthReading>> projectMonthlyReadings,
+        IReadOnlyList<ProjectCodeHealthTrend> projectTrends)
     {
         if (periods.Count < 3)
         {
@@ -132,6 +133,11 @@ public sealed class MonthlyCodeHealthReportUseCase(
 
         var startMonth = periods[^3].Label;
         var endMonth = periods[^1].Label;
+        var decliningProjectDetails = projectTrends
+            .Where(trend => trend.Delta < 0m)
+            .OrderBy(trend => trend.Delta)
+            .ThenBy(trend => trend.ProjectId)
+            .ToList();
 
         var declining = 0;
         var improving = 0;
@@ -163,7 +169,13 @@ public sealed class MonthlyCodeHealthReportUseCase(
             }
         }
 
-        return new MonthlyCodeHealthRecentTrendSummary(startMonth, endMonth, declining, improving, stable);
+        return new MonthlyCodeHealthRecentTrendSummary(
+            startMonth,
+            endMonth,
+            declining,
+            improving,
+            stable,
+            decliningProjectDetails);
     }
 
     private static IReadOnlyList<ProjectCodeHealthTrend> BuildProjectTrends(

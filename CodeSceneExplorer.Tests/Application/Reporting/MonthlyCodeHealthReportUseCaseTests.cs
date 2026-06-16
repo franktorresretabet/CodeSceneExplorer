@@ -166,6 +166,7 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
         Assert.Equal(3, result.RecentTrendSummary.DecliningProjects);
         Assert.Equal(3, result.RecentTrendSummary.ImprovingProjects);
         Assert.Equal(0, result.RecentTrendSummary.StableProjects);
+        Assert.Equal(3, result.RecentTrendSummary.DecliningProjectDetails.Count);
     }
 
     [Fact]

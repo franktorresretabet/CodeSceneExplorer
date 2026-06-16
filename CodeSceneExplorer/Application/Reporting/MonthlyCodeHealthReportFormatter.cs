@@ -8,11 +8,7 @@ public sealed class MonthlyCodeHealthReportFormatter
     public string Format(MonthlyCodeHealthReport report)
     {
         var builder = new StringBuilder();
-        AppendMonthlyRows(builder, report.MonthlyRows);
-        if (report.ThresholdCounts.Count > 0)
-        {
-            AppendThresholdCounts(builder, report.ThresholdCounts);
-        }
+        AppendMonthlySnapshotRows(builder, report.MonthlyRows, report.ThresholdCounts);
 
         if (report.RecentTrendSummary is not null)
         {
@@ -31,30 +27,23 @@ public sealed class MonthlyCodeHealthReportFormatter
         return Format(new MonthlyCodeHealthReport(rows.ToList(), [], [], null));
     }
 
-    private static void AppendMonthlyRows(StringBuilder builder, IReadOnlyList<MonthlyCodeHealthRow> rows)
+    private static void AppendMonthlySnapshotRows(
+        StringBuilder builder,
+        IReadOnlyList<MonthlyCodeHealthRow> rows,
+        IReadOnlyList<MonthlyCodeHealthThresholdCounts> thresholdCounts)
     {
-        builder.AppendLine("| year-month | average code health |");
-        builder.AppendLine("| --- | ---: |");
+        var countsByMonth = thresholdCounts.ToDictionary(counts => counts.YearMonth);
+        builder.AppendLine("| year-month | average code health | < 5 | < 7 | < 8 |");
+        builder.AppendLine("| --- | ---: | ---: | ---: | ---: |");
 
         foreach (var row in rows)
         {
-            builder.AppendLine($"| {row.YearMonth} | {row.AverageCodeHealth.ToString(CultureInfo.InvariantCulture)} |");
-        }
+            var counts = countsByMonth.TryGetValue(row.YearMonth, out var monthlyCounts)
+                ? monthlyCounts
+                : new MonthlyCodeHealthThresholdCounts(row.YearMonth, 0, 0, 0);
 
-        builder.AppendLine();
-    }
-
-    private static void AppendThresholdCounts(StringBuilder builder, IReadOnlyList<MonthlyCodeHealthThresholdCounts> counts)
-    {
-        builder.AppendLine("## Projects below code-health thresholds");
-        builder.AppendLine();
-        builder.AppendLine("| year-month | < 5 | < 7 | < 8 |");
-        builder.AppendLine("| --- | ---: | ---: | ---: |");
-
-        foreach (var row in counts)
-        {
             builder.AppendLine(
-                $"| {row.YearMonth} | {row.Below5} | {row.Below7} | {row.Below8} |");
+                $"| {row.YearMonth} | {row.AverageCodeHealth.ToString(CultureInfo.InvariantCulture)} | {counts.Below5} | {counts.Below7} | {counts.Below8} |");
         }
 
         builder.AppendLine();
@@ -68,6 +57,19 @@ public sealed class MonthlyCodeHealthReportFormatter
         builder.AppendLine("| --- | ---: | ---: | ---: |");
         builder.AppendLine($"| {summary.Window} | {summary.DecliningProjects} | {summary.ImprovingProjects} | {summary.StableProjects} |");
         builder.AppendLine();
+
+        if (summary.DecliningProjectDetails.Count > 0)
+        {
+            builder.AppendLine("### Declining projects");
+            builder.AppendLine();
+            builder.AppendLine("| project | delta |");
+            builder.AppendLine("| --- | ---: |");
+
+            foreach (var trend in summary.DecliningProjectDetails)
+            {
+                builder.AppendLine($"| {trend.DisplayName} | {trend.Delta.ToString(CultureInfo.InvariantCulture)} |");
+            }
+        }
     }
 
     private static void AppendRegressions(StringBuilder builder, IReadOnlyList<ProjectCodeHealthTrend> trends)

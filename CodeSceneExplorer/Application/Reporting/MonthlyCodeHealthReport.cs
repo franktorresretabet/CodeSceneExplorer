@@ -32,7 +32,8 @@ public sealed record MonthlyCodeHealthRecentTrendSummary(
     string WindowEndYearMonth,
     int DecliningProjects,
     int ImprovingProjects,
-    int StableProjects)
+    int StableProjects,
+    IReadOnlyList<ProjectCodeHealthTrend> DecliningProjectDetails)
 {
     public string Window => $"{WindowStartYearMonth} to {WindowEndYearMonth}";
 }
