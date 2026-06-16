@@ -28,8 +28,8 @@ public sealed class MonthlyCodeHealthReportUseCase(
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var readings = new List<MonthlyCodeHealthReading>();
         var periods = periodGenerator.Generate(startInclusive, endInclusive);
+        var rows = new List<MonthlyCodeHealthRow>(periods.Count);
 
         for (var index = 0; index < periods.Count; index++)
         {
@@ -40,10 +40,13 @@ public sealed class MonthlyCodeHealthReportUseCase(
 
             var periodReadings = await source.GetReadingsAsync(period.Start, period.End, cancellationToken)
                 .ConfigureAwait(false);
+            var averageCodeHealth = periodReadings.Count == 0
+                ? 0m
+                : aggregator.Calculate(periodReadings).Single().AverageCodeHealth;
 
-            readings.AddRange(periodReadings);
+            rows.Add(new MonthlyCodeHealthRow(period.Label, averageCodeHealth));
         }
 
-        return aggregator.Calculate(readings);
+        return rows;
     }
 }

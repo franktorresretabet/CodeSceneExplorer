@@ -31,6 +31,31 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
     }
 
     [Fact]
+    public async Task Build_keeps_months_even_when_a_month_has_no_readings()
+    {
+        var source = new MissingMonthMonthlyCodeHealthSource();
+        var sut = new MonthlyCodeHealthReportUseCase(
+            source,
+            new MonthlyPeriodGenerator(),
+            new MonthlyCodeHealthAggregator());
+
+        var result = await sut.Build(new DateOnly(2025, 9, 10), new DateOnly(2025, 10, 20));
+
+        Assert.Collection(
+            result,
+            row =>
+            {
+                Assert.Equal("2025-09", row.YearMonth);
+                Assert.Equal(15m, row.AverageCodeHealth);
+            },
+            row =>
+            {
+                Assert.Equal("2025-10", row.YearMonth);
+                Assert.Equal(0m, row.AverageCodeHealth);
+            });
+    }
+
+    [Fact]
     public async Task Build_reports_progress_for_each_month()
     {
         var source = new FakeMonthlyCodeHealthSource();
@@ -101,6 +126,19 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
         {
             WasCalled = true;
             return Task.FromResult<IReadOnlyList<MonthlyCodeHealthReading>>([]);
+        }
+    }
+
+    private sealed class MissingMonthMonthlyCodeHealthSource : IMonthlyCodeHealthSource
+    {
+        public Task<IReadOnlyList<MonthlyCodeHealthReading>> GetReadingsAsync(DateOnly start, DateOnly end, CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<MonthlyCodeHealthReading> readings =
+                start.Month == 9
+                    ? [new MonthlyCodeHealthReading("2025-09", 15)]
+                    : [];
+
+            return Task.FromResult(readings);
         }
     }
 
