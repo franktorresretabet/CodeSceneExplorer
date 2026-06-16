@@ -1,6 +1,10 @@
 namespace CodeSceneExplorer.Application.Reporting;
 
-public sealed record MonthlyCodeHealthReading(string YearMonth, decimal CodeHealth, int ProjectId = 0);
+public sealed record MonthlyCodeHealthReading(
+    string YearMonth,
+    decimal CodeHealth,
+    int ProjectId = 0,
+    string? ProjectName = null);
 
 public sealed record MonthlyCodeHealthRow(string YearMonth, decimal AverageCodeHealth);
 

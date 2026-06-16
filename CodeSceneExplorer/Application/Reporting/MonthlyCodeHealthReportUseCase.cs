@@ -4,7 +4,7 @@ namespace CodeSceneExplorer.Application.Reporting;
 
 public interface IMonthlyCodeHealthReportUseCase
 {
-    Task<IReadOnlyList<MonthlyCodeHealthRow>> Build(
+    Task<MonthlyCodeHealthReport> Build(
         DateOnly startInclusive,
         DateOnly endInclusive,
         IProgress<string>? progress = null,
@@ -25,7 +25,7 @@ public sealed class MonthlyCodeHealthReportUseCase(
     MonthlyCodeHealthAggregator aggregator,
     IOptions<ReportOptions>? options = null) : IMonthlyCodeHealthReportUseCase
 {
-    public async Task<IReadOnlyList<MonthlyCodeHealthRow>> Build(
+    public async Task<MonthlyCodeHealthReport> Build(
         DateOnly startInclusive,
         DateOnly endInclusive,
         IProgress<string>? progress = null,
@@ -34,7 +34,6 @@ public sealed class MonthlyCodeHealthReportUseCase(
         var periods = periodGenerator.Generate(startInclusive, endInclusive);
         var scoreLimit = options?.Value.ScoreLimit;
         var readings = new List<MonthlyCodeHealthReading>();
-        var rows = new List<MonthlyCodeHealthRow>(periods.Count);
 
         for (var index = 0; index < periods.Count; index++)
         {
@@ -50,7 +49,46 @@ public sealed class MonthlyCodeHealthReportUseCase(
         var excludedProjectIds = scoreLimit.HasValue
             ? GetExcludedProjectIds(readings, scoreLimit.Value)
             : [];
-        var filteredReadings = readings.Where(reading => !excludedProjectIds.Contains(reading.ProjectId));
+        var filteredReadings = readings
+            .Where(reading => !excludedProjectIds.Contains(reading.ProjectId))
+            .ToList();
+
+        var rows = BuildMonthlyRows(periods, filteredReadings);
+        var projectTrends = BuildProjectTrends(filteredReadings);
+
+        var topDecliners = projectTrends
+            .Where(trend => trend.Delta < 0m)
+            .OrderBy(trend => trend.Delta)
+            .ThenBy(trend => trend.ProjectId)
+            .Take(3)
+            .ToList();
+
+        var smallImprovers = projectTrends
+            .Where(trend => trend.Delta > 0m && trend.Delta < 0.1m)
+            .OrderBy(trend => trend.Delta)
+            .ThenBy(trend => trend.ProjectId)
+            .Take(3)
+            .ToList();
+
+        return new MonthlyCodeHealthReport(rows, topDecliners, smallImprovers);
+    }
+
+    private static HashSet<int> GetExcludedProjectIds(
+        IEnumerable<MonthlyCodeHealthReading> readings,
+        decimal scoreLimit)
+    {
+        return readings
+            .GroupBy(reading => reading.ProjectId)
+            .Where(group => group.All(reading => reading.CodeHealth > scoreLimit))
+            .Select(group => group.Key)
+            .ToHashSet();
+    }
+
+    private IReadOnlyList<MonthlyCodeHealthRow> BuildMonthlyRows(
+        IReadOnlyList<MonthlyPeriod> periods,
+        IReadOnlyList<MonthlyCodeHealthReading> filteredReadings)
+    {
+        var rows = new List<MonthlyCodeHealthRow>(periods.Count);
 
         foreach (var period in periods)
         {
@@ -68,14 +106,24 @@ public sealed class MonthlyCodeHealthReportUseCase(
         return rows;
     }
 
-    private static HashSet<int> GetExcludedProjectIds(
-        IEnumerable<MonthlyCodeHealthReading> readings,
-        decimal scoreLimit)
+    private static IReadOnlyList<ProjectCodeHealthTrend> BuildProjectTrends(
+        IReadOnlyList<MonthlyCodeHealthReading> filteredReadings)
     {
-        return readings
+        return filteredReadings
             .GroupBy(reading => reading.ProjectId)
-            .Where(group => group.All(reading => reading.CodeHealth > scoreLimit))
-            .Select(group => group.Key)
-            .ToHashSet();
+            .Select(group =>
+            {
+                var ordered = group.OrderBy(reading => reading.YearMonth, StringComparer.Ordinal).ToList();
+                var start = ordered.First();
+                var end = ordered.Last();
+
+                return new ProjectCodeHealthTrend(
+                    group.Key,
+                    ordered.FirstOrDefault(reading => !string.IsNullOrWhiteSpace(reading.ProjectName))?.ProjectName,
+                    ordered,
+                    start.CodeHealth,
+                    end.CodeHealth);
+            })
+            .ToList();
     }
 }

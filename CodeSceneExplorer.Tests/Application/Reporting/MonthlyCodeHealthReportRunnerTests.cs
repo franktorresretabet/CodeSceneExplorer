@@ -44,7 +44,7 @@ public sealed class MonthlyCodeHealthReportRunnerTests
 
         public DateOnly? End { get; private set; }
 
-        public Task<IReadOnlyList<MonthlyCodeHealthRow>> Build(
+        public Task<MonthlyCodeHealthReport> Build(
             DateOnly startInclusive,
             DateOnly endInclusive,
             IProgress<string>? progress = null,
@@ -53,13 +53,15 @@ public sealed class MonthlyCodeHealthReportRunnerTests
             Start = startInclusive;
             End = endInclusive;
 
-            IReadOnlyList<MonthlyCodeHealthRow> rows =
-            [
-                new MonthlyCodeHealthRow("2025-09", 15m),
-                new MonthlyCodeHealthRow("2025-10", 30m)
-            ];
+            var report = new MonthlyCodeHealthReport(
+                [
+                    new MonthlyCodeHealthRow("2025-09", 15m),
+                    new MonthlyCodeHealthRow("2025-10", 30m)
+                ],
+                [],
+                []);
 
-            return Task.FromResult(rows);
+            return Task.FromResult(report);
         }
     }
 }

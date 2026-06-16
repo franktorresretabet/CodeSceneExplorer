@@ -13,7 +13,7 @@ public sealed class MonthlyCodeHealthReportRunner(
         CancellationToken cancellationToken = default)
     {
         var start = options.Value.GetStartDate() ?? new DateOnly(today.Year - 1, 9, 1);
-        var rows = await useCase.Build(start, today, progress, cancellationToken).ConfigureAwait(false);
-        return formatter.Format(rows);
+        var report = await useCase.Build(start, today, progress, cancellationToken).ConfigureAwait(false);
+        return formatter.Format(report);
     }
 }

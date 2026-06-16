@@ -10,7 +10,7 @@ public sealed class MonthlyCodeHealthSource(
     ICodeSceneApi api,
     ILogger<MonthlyCodeHealthSource>? logger = null) : IMonthlyCodeHealthSource
 {
-    private IReadOnlyList<int>? _projectIds;
+    private IReadOnlyList<ProjectEntry>? _projects;
     private readonly Dictionary<int, IReadOnlyList<KpiSample>> _kpiTrendByProject = new();
 
     public async Task<IReadOnlyList<MonthlyCodeHealthReading>> GetReadingsAsync(
@@ -20,24 +20,24 @@ public sealed class MonthlyCodeHealthSource(
     {
         var readings = new List<MonthlyCodeHealthReading>();
 
-        foreach (var projectId in await GetProjectIdsAsync(cancellationToken).ConfigureAwait(false))
+        foreach (var project in await GetProjectsAsync(cancellationToken).ConfigureAwait(false))
         {
-            var sample = await GetLatestKpiSampleOnOrBeforeAsync(projectId, end, cancellationToken)
+            var sample = await GetLatestKpiSampleOnOrBeforeAsync(project.Id, end, cancellationToken)
                 .ConfigureAwait(false);
 
             if (sample is null)
             {
                 logger?.LogInformation(
                     "No KPI trend data found for project {ProjectId} by {Cutoff:yyyy-MM-dd}.",
-                    projectId,
+                    project.Id,
                     end);
                 continue;
             }
 
-            readings.Add(new MonthlyCodeHealthReading(start.ToString("yyyy-MM"), sample.Kpi, projectId));
+            readings.Add(new MonthlyCodeHealthReading(start.ToString("yyyy-MM"), sample.Kpi, project.Id, project.Name));
             logger?.LogInformation(
                 "Project {ProjectId} month {YearMonth}: KPI sample from {SampleDate:yyyy-MM-dd} with code health {CodeHealth}.",
-                projectId,
+                project.Id,
                 start.ToString("yyyy-MM", CultureInfo.InvariantCulture),
                 sample.Date,
                 sample.Kpi);
@@ -46,14 +46,14 @@ public sealed class MonthlyCodeHealthSource(
         return readings;
     }
 
-    private async Task<IReadOnlyList<int>> GetProjectIdsAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<ProjectEntry>> GetProjectsAsync(CancellationToken cancellationToken)
     {
-        if (_projectIds is not null)
+        if (_projects is not null)
         {
-            return _projectIds;
+            return _projects;
         }
 
-        var projectIds = new List<int>();
+        var projects = new List<ProjectEntry>();
         var page = 1;
         var maxPages = 1;
 
@@ -64,17 +64,17 @@ public sealed class MonthlyCodeHealthSource(
             var pageData = ParseProjectsPage(response);
             maxPages = pageData.MaxPages;
 
-            if (pageData.ProjectIds.Count == 0)
+            if (pageData.Projects.Count == 0)
             {
                 break;
             }
 
-            projectIds.AddRange(pageData.ProjectIds);
+            projects.AddRange(pageData.Projects);
             page++;
         }
 
-        _projectIds = projectIds;
-        return _projectIds;
+        _projects = projects;
+        return _projects;
     }
 
     private async Task<KpiSample?> GetLatestKpiSampleOnOrBeforeAsync(
@@ -146,12 +146,18 @@ public sealed class MonthlyCodeHealthSource(
         if (!document.RootElement.TryGetProperty("projects", out var projects) || projects.ValueKind != JsonValueKind.Array)
             return new ProjectPage([], 1);
 
-        var projectIds = new List<int>();
+        var projectEntries = new List<ProjectEntry>();
 
         foreach (var item in projects.EnumerateArray())
         {
             if (item.TryGetProperty("id", out var idProperty) && idProperty.TryGetInt32(out var projectId))
-                projectIds.Add(projectId);
+            {
+                var projectName = item.TryGetProperty("name", out var nameProperty)
+                    ? nameProperty.GetString()
+                    : null;
+
+                projectEntries.Add(new ProjectEntry(projectId, projectName));
+            }
         }
 
         var maxPages = document.RootElement.TryGetProperty("max_pages", out var maxPagesProperty)
@@ -159,10 +165,12 @@ public sealed class MonthlyCodeHealthSource(
             ? parsedMaxPages
             : 1;
 
-        return new ProjectPage(projectIds, maxPages);
+        return new ProjectPage(projectEntries, maxPages);
     }
 
-    private sealed record ProjectPage(IReadOnlyList<int> ProjectIds, int MaxPages);
+    private sealed record ProjectPage(IReadOnlyList<ProjectEntry> Projects, int MaxPages);
+
+    private sealed record ProjectEntry(int Id, string? Name);
 
     private sealed record KpiSample(DateOnly Date, decimal Kpi);
 }
