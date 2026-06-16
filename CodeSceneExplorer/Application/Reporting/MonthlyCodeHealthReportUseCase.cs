@@ -54,23 +54,19 @@ public sealed class MonthlyCodeHealthReportUseCase(
             .ToList();
 
         var rows = BuildMonthlyRows(periods, filteredReadings);
-        var projectTrends = BuildProjectTrends(filteredReadings);
-
-        var topDecliners = projectTrends
+        var projectMonthlyReadings = BuildProjectMonthlyReadings(filteredReadings);
+        var thresholdCounts = BuildThresholdCounts(periods, projectMonthlyReadings);
+        var projectTrends = BuildProjectTrends(projectMonthlyReadings);
+        var largestRegressions = projectTrends
             .Where(trend => trend.Delta < 0m)
             .OrderBy(trend => trend.Delta)
             .ThenBy(trend => trend.ProjectId)
             .Take(3)
             .ToList();
 
-        var smallImprovers = projectTrends
-            .Where(trend => trend.Delta > 0m && trend.Delta < 0.1m)
-            .OrderBy(trend => trend.Delta)
-            .ThenBy(trend => trend.ProjectId)
-            .Take(3)
-            .ToList();
+        var recentTrendSummary = BuildRecentTrendSummary(periods, projectMonthlyReadings);
 
-        return new MonthlyCodeHealthReport(rows, topDecliners, smallImprovers);
+        return new MonthlyCodeHealthReport(rows, thresholdCounts, largestRegressions, recentTrendSummary);
     }
 
     private static HashSet<int> GetExcludedProjectIds(
@@ -106,14 +102,77 @@ public sealed class MonthlyCodeHealthReportUseCase(
         return rows;
     }
 
-    private static IReadOnlyList<ProjectCodeHealthTrend> BuildProjectTrends(
-        IReadOnlyList<MonthlyCodeHealthReading> filteredReadings)
+    private static IReadOnlyList<MonthlyCodeHealthThresholdCounts> BuildThresholdCounts(
+        IReadOnlyList<MonthlyPeriod> periods,
+        IReadOnlyDictionary<int, IReadOnlyList<MonthlyCodeHealthReading>> projectMonthlyReadings)
     {
-        return filteredReadings
-            .GroupBy(reading => reading.ProjectId)
+        return periods
+            .Select(period =>
+            {
+                var periodReadings = projectMonthlyReadings.Values
+                    .SelectMany(readings => readings.Where(reading => reading.YearMonth == period.Label));
+
+                return new MonthlyCodeHealthThresholdCounts(
+                    period.Label,
+                    periodReadings.Count(reading => reading.CodeHealth < 5m),
+                    periodReadings.Count(reading => reading.CodeHealth < 7m),
+                    periodReadings.Count(reading => reading.CodeHealth < 8m));
+            })
+            .ToList();
+    }
+
+    private static MonthlyCodeHealthRecentTrendSummary? BuildRecentTrendSummary(
+        IReadOnlyList<MonthlyPeriod> periods,
+        IReadOnlyDictionary<int, IReadOnlyList<MonthlyCodeHealthReading>> projectMonthlyReadings)
+    {
+        if (periods.Count < 3)
+        {
+            return null;
+        }
+
+        var startMonth = periods[^3].Label;
+        var endMonth = periods[^1].Label;
+
+        var declining = 0;
+        var improving = 0;
+        var stable = 0;
+
+        foreach (var projectReadings in projectMonthlyReadings.Values)
+        {
+            var startReading = projectReadings.FirstOrDefault(reading => reading.YearMonth == startMonth);
+            var endReading = projectReadings.FirstOrDefault(reading => reading.YearMonth == endMonth);
+
+            if (startReading is null || endReading is null)
+            {
+                continue;
+            }
+
+            var delta = endReading.CodeHealth - startReading.CodeHealth;
+
+            if (delta < 0m)
+            {
+                declining++;
+            }
+            else if (delta > 0m)
+            {
+                improving++;
+            }
+            else
+            {
+                stable++;
+            }
+        }
+
+        return new MonthlyCodeHealthRecentTrendSummary(startMonth, endMonth, declining, improving, stable);
+    }
+
+    private static IReadOnlyList<ProjectCodeHealthTrend> BuildProjectTrends(
+        IReadOnlyDictionary<int, IReadOnlyList<MonthlyCodeHealthReading>> projectMonthlyReadings)
+    {
+        return projectMonthlyReadings
             .Select(group =>
             {
-                var ordered = group.OrderBy(reading => reading.YearMonth, StringComparer.Ordinal).ToList();
+                var ordered = group.Value.OrderBy(reading => reading.YearMonth, StringComparer.Ordinal).ToList();
                 var start = ordered.First();
                 var end = ordered.Last();
 
@@ -125,5 +184,31 @@ public sealed class MonthlyCodeHealthReportUseCase(
                     end.CodeHealth);
             })
             .ToList();
+    }
+
+    private static IReadOnlyDictionary<int, IReadOnlyList<MonthlyCodeHealthReading>> BuildProjectMonthlyReadings(
+        IReadOnlyList<MonthlyCodeHealthReading> filteredReadings)
+    {
+        return filteredReadings
+            .GroupBy(reading => reading.ProjectId)
+            .Select(group =>
+            {
+                var monthlyReadings = group
+                    .GroupBy(reading => reading.YearMonth)
+                    .OrderBy(monthGroup => monthGroup.Key, StringComparer.Ordinal)
+                    .Select(monthGroup =>
+                    {
+                        var name = monthGroup.FirstOrDefault(reading => !string.IsNullOrWhiteSpace(reading.ProjectName))?.ProjectName;
+                        return new MonthlyCodeHealthReading(
+                            monthGroup.Key,
+                            Math.Round(monthGroup.Average(reading => reading.CodeHealth), 2),
+                            group.Key,
+                            name);
+                    })
+                    .ToList();
+
+                return new KeyValuePair<int, IReadOnlyList<MonthlyCodeHealthReading>>(group.Key, monthlyReadings);
+            })
+            .ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 }

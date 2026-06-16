@@ -9,21 +9,26 @@ public sealed class MonthlyCodeHealthReportFormatter
     {
         var builder = new StringBuilder();
         AppendMonthlyRows(builder, report.MonthlyRows);
-        if (report.TopDecliners.Count > 0)
+        if (report.ThresholdCounts.Count > 0)
         {
-            AppendDecliners(builder, report.TopDecliners);
+            AppendThresholdCounts(builder, report.ThresholdCounts);
         }
 
-        if (report.SmallImprovers.Count > 0)
+        if (report.RecentTrendSummary is not null)
         {
-            AppendSmallImprovers(builder, report.SmallImprovers);
+            AppendRecentTrendSummary(builder, report.RecentTrendSummary);
+        }
+
+        if (report.LargestRegressions.Count > 0)
+        {
+            AppendRegressions(builder, report.LargestRegressions);
         }
         return builder.ToString().TrimEnd();
     }
 
     public string Format(IEnumerable<MonthlyCodeHealthRow> rows)
     {
-        return Format(new MonthlyCodeHealthReport(rows.ToList(), [], []));
+        return Format(new MonthlyCodeHealthReport(rows.ToList(), [], [], null));
     }
 
     private static void AppendMonthlyRows(StringBuilder builder, IReadOnlyList<MonthlyCodeHealthRow> rows)
@@ -39,11 +44,44 @@ public sealed class MonthlyCodeHealthReportFormatter
         builder.AppendLine();
     }
 
-    private static void AppendDecliners(StringBuilder builder, IReadOnlyList<ProjectCodeHealthTrend> trends)
+    private static void AppendThresholdCounts(StringBuilder builder, IReadOnlyList<MonthlyCodeHealthThresholdCounts> counts)
     {
-        builder.AppendLine("## Top 3 projects that decreased code health");
+        builder.AppendLine("## Projects below code-health thresholds");
         builder.AppendLine();
-        AppendTrendSummary(builder, trends);
+        builder.AppendLine("| year-month | < 5 | < 7 | < 8 |");
+        builder.AppendLine("| --- | ---: | ---: | ---: |");
+
+        foreach (var row in counts)
+        {
+            builder.AppendLine(
+                $"| {row.YearMonth} | {row.Below5} | {row.Below7} | {row.Below8} |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendRecentTrendSummary(StringBuilder builder, MonthlyCodeHealthRecentTrendSummary summary)
+    {
+        builder.AppendLine("## Projects declining vs improving in the last 3 months");
+        builder.AppendLine();
+        builder.AppendLine("| window | declining | improving | stable |");
+        builder.AppendLine("| --- | ---: | ---: | ---: |");
+        builder.AppendLine($"| {summary.Window} | {summary.DecliningProjects} | {summary.ImprovingProjects} | {summary.StableProjects} |");
+        builder.AppendLine();
+    }
+
+    private static void AppendRegressions(StringBuilder builder, IReadOnlyList<ProjectCodeHealthTrend> trends)
+    {
+        builder.AppendLine("## Largest regressions");
+        builder.AppendLine();
+        builder.AppendLine("| project | start | end | delta |");
+        builder.AppendLine("| --- | ---: | ---: | ---: |");
+
+        foreach (var trend in trends)
+        {
+            builder.AppendLine(
+                $"| {trend.DisplayName} | {trend.StartCodeHealth.ToString(CultureInfo.InvariantCulture)} | {trend.EndCodeHealth.ToString(CultureInfo.InvariantCulture)} | {trend.Delta.ToString(CultureInfo.InvariantCulture)} |");
+        }
 
         foreach (var trend in trends)
         {
@@ -57,33 +95,6 @@ public sealed class MonthlyCodeHealthReportFormatter
             {
                 builder.AppendLine($"| {reading.YearMonth} | {reading.CodeHealth.ToString(CultureInfo.InvariantCulture)} |");
             }
-        }
-    }
-
-    private static void AppendSmallImprovers(StringBuilder builder, IReadOnlyList<ProjectCodeHealthTrend> trends)
-    {
-        builder.AppendLine();
-        builder.AppendLine("## Top 3 projects that improved code health by less than 0.1");
-        builder.AppendLine();
-        builder.AppendLine("| project | start | end | delta |");
-        builder.AppendLine("| --- | ---: | ---: | ---: |");
-
-        foreach (var trend in trends)
-        {
-            builder.AppendLine(
-                $"| {trend.DisplayName} | {trend.StartCodeHealth.ToString(CultureInfo.InvariantCulture)} | {trend.EndCodeHealth.ToString(CultureInfo.InvariantCulture)} | {trend.Delta.ToString(CultureInfo.InvariantCulture)} |");
-        }
-    }
-
-    private static void AppendTrendSummary(StringBuilder builder, IReadOnlyList<ProjectCodeHealthTrend> trends)
-    {
-        builder.AppendLine("| project | start | end | delta |");
-        builder.AppendLine("| --- | ---: | ---: | ---: |");
-
-        foreach (var trend in trends)
-        {
-            builder.AppendLine(
-                $"| {trend.DisplayName} | {trend.StartCodeHealth.ToString(CultureInfo.InvariantCulture)} | {trend.EndCodeHealth.ToString(CultureInfo.InvariantCulture)} | {trend.Delta.ToString(CultureInfo.InvariantCulture)} |");
         }
     }
 }

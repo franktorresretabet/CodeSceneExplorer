@@ -2,8 +2,9 @@ namespace CodeSceneExplorer.Application.Reporting;
 
 public sealed record MonthlyCodeHealthReport(
     IReadOnlyList<MonthlyCodeHealthRow> MonthlyRows,
-    IReadOnlyList<ProjectCodeHealthTrend> TopDecliners,
-    IReadOnlyList<ProjectCodeHealthTrend> SmallImprovers);
+    IReadOnlyList<MonthlyCodeHealthThresholdCounts> ThresholdCounts,
+    IReadOnlyList<ProjectCodeHealthTrend> LargestRegressions,
+    MonthlyCodeHealthRecentTrendSummary? RecentTrendSummary);
 
 public sealed record ProjectCodeHealthTrend(
     int ProjectId,
@@ -18,4 +19,20 @@ public sealed record ProjectCodeHealthTrend(
         string.IsNullOrWhiteSpace(ProjectName)
             ? $"Project {ProjectId}"
             : $"{ProjectName} ({ProjectId})";
+}
+
+public sealed record MonthlyCodeHealthThresholdCounts(
+    string YearMonth,
+    int Below5,
+    int Below7,
+    int Below8);
+
+public sealed record MonthlyCodeHealthRecentTrendSummary(
+    string WindowStartYearMonth,
+    string WindowEndYearMonth,
+    int DecliningProjects,
+    int ImprovingProjects,
+    int StableProjects)
+{
+    public string Window => $"{WindowStartYearMonth} to {WindowEndYearMonth}";
 }

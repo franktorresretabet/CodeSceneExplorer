@@ -59,7 +59,8 @@ public sealed class MonthlyCodeHealthReportRunnerTests
                     new MonthlyCodeHealthRow("2025-10", 30m)
                 ],
                 [],
-                []);
+                [],
+                null);
 
             return Task.FromResult(report);
         }

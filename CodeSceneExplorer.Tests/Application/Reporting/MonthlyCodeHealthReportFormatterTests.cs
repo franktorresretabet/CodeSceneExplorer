@@ -34,6 +34,9 @@ public sealed class MonthlyCodeHealthReportFormatterTests
                 new MonthlyCodeHealthRow("2025-10", 30m)
             ],
             [
+                new MonthlyCodeHealthThresholdCounts("2025-09", 1, 2, 3)
+            ],
+            [
                 new ProjectCodeHealthTrend(
                     1,
                     "Project A",
@@ -44,23 +47,15 @@ public sealed class MonthlyCodeHealthReportFormatterTests
                     9m,
                     7m)
             ],
-            [
-                new ProjectCodeHealthTrend(
-                    2,
-                    "Project B",
-                    [
-                        new MonthlyCodeHealthReading("2025-09", 6m, 2, "Project B"),
-                        new MonthlyCodeHealthReading("2025-10", 6.05m, 2, "Project B")
-                    ],
-                    6m,
-                    6.05m)
-            ]);
+            new MonthlyCodeHealthRecentTrendSummary("2025-07", "2025-10", 4, 5, 6));
 
         var result = sut.Format(report);
 
-        Assert.Contains("## Top 3 projects that decreased code health", result);
+        Assert.Contains("## Projects below code-health thresholds", result);
+        Assert.Contains("| 2025-09 | 1 | 2 | 3 |", result);
+        Assert.Contains("## Projects declining vs improving in the last 3 months", result);
+        Assert.Contains("| 2025-07 to 2025-10 | 4 | 5 | 6 |", result);
+        Assert.Contains("## Largest regressions", result);
         Assert.Contains("### Project A (1)", result);
-        Assert.Contains("## Top 3 projects that improved code health by less than 0.1", result);
-        Assert.Contains("| Project B (2) | 6 | 6.05 | 0.05 |", result);
     }
 }

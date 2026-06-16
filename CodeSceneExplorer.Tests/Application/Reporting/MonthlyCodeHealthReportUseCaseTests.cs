@@ -114,43 +114,58 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
             new MonthlyPeriodGenerator(),
             new MonthlyCodeHealthAggregator());
 
-        var result = await sut.Build(new DateOnly(2025, 9, 10), new DateOnly(2025, 10, 20));
+        var result = await sut.Build(new DateOnly(2025, 9, 10), new DateOnly(2025, 11, 20));
 
         Assert.Collection(
-            result.TopDecliners,
+            result.LargestRegressions,
             trend =>
             {
                 Assert.Equal("Project 1 (1)", trend.DisplayName);
                 Assert.Equal(9m, trend.StartCodeHealth);
-                Assert.Equal(7m, trend.EndCodeHealth);
+                Assert.Equal(8m, trend.EndCodeHealth);
             },
             trend =>
             {
                 Assert.Equal("Project 3 (3)", trend.DisplayName);
                 Assert.Equal(7m, trend.StartCodeHealth);
-                Assert.Equal(5m, trend.EndCodeHealth);
+                Assert.Equal(6m, trend.EndCodeHealth);
             },
             trend =>
             {
                 Assert.Equal("Project 2 (2)", trend.DisplayName);
                 Assert.Equal(8m, trend.StartCodeHealth);
-                Assert.Equal(6.5m, trend.EndCodeHealth);
+                Assert.Equal(7.5m, trend.EndCodeHealth);
             });
 
         Assert.Collection(
-            result.SmallImprovers,
-            trend =>
+            result.ThresholdCounts,
+            row =>
             {
-                Assert.Equal("Project 4 (4)", trend.DisplayName);
-                Assert.Equal(6m, trend.StartCodeHealth);
-                Assert.Equal(6.05m, trend.EndCodeHealth);
+                Assert.Equal("2025-09", row.YearMonth);
+                Assert.Equal(0, row.Below5);
+                Assert.Equal(2, row.Below7);
+                Assert.Equal(4, row.Below8);
             },
-            trend =>
+            row =>
             {
-                Assert.Equal("Project 5 (5)", trend.DisplayName);
-                Assert.Equal(7m, trend.StartCodeHealth);
-                Assert.Equal(7.07m, trend.EndCodeHealth);
+                Assert.Equal("2025-10", row.YearMonth);
+                Assert.Equal(0, row.Below5);
+                Assert.Equal(4, row.Below7);
+                Assert.Equal(6, row.Below8);
+            },
+            row =>
+            {
+                Assert.Equal("2025-11", row.YearMonth);
+                Assert.Equal(0, row.Below5);
+                Assert.Equal(3, row.Below7);
+                Assert.Equal(5, row.Below8);
             });
+
+        Assert.NotNull(result.RecentTrendSummary);
+        Assert.Equal("2025-09 to 2025-11", result.RecentTrendSummary!.Window);
+        Assert.Equal(3, result.RecentTrendSummary.DecliningProjects);
+        Assert.Equal(3, result.RecentTrendSummary.ImprovingProjects);
+        Assert.Equal(0, result.RecentTrendSummary.StableProjects);
     }
 
     [Fact]
@@ -246,24 +261,33 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
             DateOnly end,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyList<MonthlyCodeHealthReading> readings =
-                start.Month == 9
-                    ? [
-                        new MonthlyCodeHealthReading("2025-09", 9m, 1, "Project 1"),
-                        new MonthlyCodeHealthReading("2025-09", 8m, 2, "Project 2"),
-                        new MonthlyCodeHealthReading("2025-09", 7m, 3, "Project 3"),
-                        new MonthlyCodeHealthReading("2025-09", 6m, 4, "Project 4"),
-                        new MonthlyCodeHealthReading("2025-09", 7m, 5, "Project 5"),
-                        new MonthlyCodeHealthReading("2025-09", 6m, 6, "Project 6")
-                    ]
-                    : [
-                        new MonthlyCodeHealthReading("2025-10", 7m, 1, "Project 1"),
-                        new MonthlyCodeHealthReading("2025-10", 6.5m, 2, "Project 2"),
-                        new MonthlyCodeHealthReading("2025-10", 5m, 3, "Project 3"),
-                        new MonthlyCodeHealthReading("2025-10", 6.05m, 4, "Project 4"),
-                        new MonthlyCodeHealthReading("2025-10", 7.07m, 5, "Project 5"),
-                        new MonthlyCodeHealthReading("2025-10", 6.2m, 6, "Project 6")
-                    ];
+            IReadOnlyList<MonthlyCodeHealthReading> readings = start.Month switch
+            {
+                9 => [
+                    new MonthlyCodeHealthReading("2025-09", 9m, 1, "Project 1"),
+                    new MonthlyCodeHealthReading("2025-09", 8m, 2, "Project 2"),
+                    new MonthlyCodeHealthReading("2025-09", 7m, 3, "Project 3"),
+                    new MonthlyCodeHealthReading("2025-09", 6m, 4, "Project 4"),
+                    new MonthlyCodeHealthReading("2025-09", 7m, 5, "Project 5"),
+                    new MonthlyCodeHealthReading("2025-09", 6m, 6, "Project 6")
+                ],
+                10 => [
+                    new MonthlyCodeHealthReading("2025-10", 7m, 1, "Project 1"),
+                    new MonthlyCodeHealthReading("2025-10", 6.5m, 2, "Project 2"),
+                    new MonthlyCodeHealthReading("2025-10", 5m, 3, "Project 3"),
+                    new MonthlyCodeHealthReading("2025-10", 6.05m, 4, "Project 4"),
+                    new MonthlyCodeHealthReading("2025-10", 7.07m, 5, "Project 5"),
+                    new MonthlyCodeHealthReading("2025-10", 6.2m, 6, "Project 6")
+                ],
+                _ => [
+                    new MonthlyCodeHealthReading("2025-11", 8m, 1, "Project 1"),
+                    new MonthlyCodeHealthReading("2025-11", 7.5m, 2, "Project 2"),
+                    new MonthlyCodeHealthReading("2025-11", 6m, 3, "Project 3"),
+                    new MonthlyCodeHealthReading("2025-11", 6.1m, 4, "Project 4"),
+                    new MonthlyCodeHealthReading("2025-11", 7.2m, 5, "Project 5"),
+                    new MonthlyCodeHealthReading("2025-11", 6.5m, 6, "Project 6")
+                ]
+            };
 
             return Task.FromResult(readings);
         }
