@@ -44,7 +44,11 @@ internal class Program
 
     private static HostApplicationBuilder InitializeHostAppBuilder(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+        {
+            Args = args,
+            ContentRootPath = AppContext.BaseDirectory
+        });
         builder.Logging.ClearProviders();
         builder.Logging.AddProvider(new Log4NetLoggerProvider());
 
