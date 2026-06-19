@@ -14,8 +14,8 @@ Small .NET 10 console app for reading CodeScene data and shaping it into a month
 - Configurable API base URL
 - API token loaded from `~\CodeSceneApiToken.txt`
 - Explicit date ranges for reproducible reports
-- Monthly report output as a table
-- Uses CodeScene KPI trend data as the source of monthly code health
+- Monthly report output as a table with code health and hotspot code health
+- Uses CodeScene KPI trend data as the source of monthly code health and hotspot code health
 
 ## Configuration
 
@@ -36,11 +36,12 @@ The report writes structured logs through log4net to `CodeSceneExplorer/bin/<con
 ## Scope
 - Projects
 - Code health
+- Hotspot code health
 - KPI trends
 
 ## Notes for new contributors
 
-- The report collects the last KPI sample on or before each month end for every project, then aggregates the remaining readings by month.
+- The report collects the last KPI and hotspot KPI samples on or before each month end for every project, then aggregates the remaining readings by month.
 - If a score limit is configured, exclusion happens after fetching the full window of data and before monthly averaging.
 - `appsettings.json` is copied to the output folder, so changes there affect the next run without code changes.
 - `log4net.config` controls file logging; the file name pattern is `yyyyMMdd-HHmmss.CodeSceneExplorer.log`.

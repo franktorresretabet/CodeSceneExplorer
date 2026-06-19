@@ -15,12 +15,12 @@ Build a small .NET console app that reads data from the CodeScene API and turns 
 1. Projects
 2. Analyses
 3. Code health
-4. Repository evolution
+4. Hotspot code health
+5. Repository evolution
 
 ## Excluded API areas
 - write endpoints
 - author statistics
-- hotspot code health
 - components/files
 - teams/developer settings
 - code coverage
@@ -41,7 +41,7 @@ Build a small .NET console app that reads data from the CodeScene API and turns 
 - Next: extend report slices only if the report needs more data
 
 ## Reporting boundary
-- The reporting use case owns monthly period generation and code health aggregation.
+- The reporting use case owns monthly period generation and code health plus hotspot code health aggregation.
 - Infrastructure only fetches CodeScene data.
 - Program only wires dependencies and triggers the use case.
 - The final output is a plain monthly table.

@@ -4,9 +4,13 @@ public sealed record MonthlyCodeHealthReading(
     string YearMonth,
     decimal CodeHealth,
     int ProjectId = 0,
-    string? ProjectName = null);
+    string? ProjectName = null,
+    decimal? HotspotCodeHealth = null);
 
-public sealed record MonthlyCodeHealthRow(string YearMonth, decimal AverageCodeHealth);
+public sealed record MonthlyCodeHealthRow(
+    string YearMonth,
+    decimal AverageCodeHealth,
+    decimal AverageHotspotCodeHealth);
 
 public sealed class MonthlyCodeHealthAggregator
 {
@@ -17,7 +21,20 @@ public sealed class MonthlyCodeHealthAggregator
             .OrderBy(group => group.Key)
             .Select(group => new MonthlyCodeHealthRow(
                 group.Key,
-                Math.Round(group.Average(reading => reading.CodeHealth), 2)))
+                Math.Round(group.Average(reading => reading.CodeHealth), 2),
+                CalculateHotspotAverage(group)))
             .ToList();
+    }
+
+    private static decimal CalculateHotspotAverage(IEnumerable<MonthlyCodeHealthReading> readings)
+    {
+        var hotspotReadings = readings
+            .Where(reading => reading.HotspotCodeHealth.HasValue)
+            .Select(reading => reading.HotspotCodeHealth!.Value)
+            .ToList();
+
+        return hotspotReadings.Count == 0
+            ? 0m
+            : Math.Round(hotspotReadings.Average(), 2);
     }
 }

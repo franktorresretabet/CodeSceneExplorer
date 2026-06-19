@@ -12,6 +12,7 @@ public sealed class MonthlyCodeHealthSource(
 {
     private IReadOnlyList<ProjectEntry>? _projects;
     private readonly Dictionary<int, IReadOnlyList<KpiSample>> _kpiTrendByProject = new();
+    private readonly Dictionary<int, IReadOnlyList<KpiSample>> _hotspotTrendByProject = new();
 
     public async Task<IReadOnlyList<MonthlyCodeHealthReading>> GetReadingsAsync(
         DateOnly start,
@@ -34,7 +35,15 @@ public sealed class MonthlyCodeHealthSource(
                 continue;
             }
 
-            readings.Add(new MonthlyCodeHealthReading(start.ToString("yyyy-MM"), sample.Kpi, project.Id, project.Name));
+            var hotspotSample = await GetLatestHotspotSampleOnOrBeforeAsync(project.Id, end, cancellationToken)
+                .ConfigureAwait(false);
+
+            readings.Add(new MonthlyCodeHealthReading(
+                start.ToString("yyyy-MM"),
+                sample.Kpi,
+                project.Id,
+                project.Name,
+                hotspotSample?.Kpi));
             logger?.LogInformation(
                 "Project {ProjectId} month {YearMonth}: KPI sample from {SampleDate:yyyy-MM-dd} with code health {CodeHealth}.",
                 project.Id,
@@ -86,6 +95,15 @@ public sealed class MonthlyCodeHealthSource(
         return trend.LastOrDefault(s => s.Date <= cutoff);
     }
 
+    private async Task<KpiSample?> GetLatestHotspotSampleOnOrBeforeAsync(
+        int projectId,
+        DateOnly cutoff,
+        CancellationToken cancellationToken)
+    {
+        var trend = await GetHotspotTrendAsync(projectId, cancellationToken).ConfigureAwait(false);
+        return trend.LastOrDefault(s => s.Date <= cutoff);
+    }
+
     private async Task<IReadOnlyList<KpiSample>> GetKpiTrendAsync(
         int projectId,
         CancellationToken cancellationToken)
@@ -97,6 +115,22 @@ public sealed class MonthlyCodeHealthSource(
             .ConfigureAwait(false);
         var samples = ParseKpiTrend(response);
         _kpiTrendByProject[projectId] = samples;
+        return samples;
+    }
+
+    private async Task<IReadOnlyList<KpiSample>> GetHotspotTrendAsync(
+        int projectId,
+        CancellationToken cancellationToken)
+    {
+        if (_hotspotTrendByProject.TryGetValue(projectId, out var cached))
+        {
+            return cached;
+        }
+
+        var response = await api.GetKpiTrendHotspotCodeHealthAsync(projectId, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var samples = ParseKpiTrend(response);
+        _hotspotTrendByProject[projectId] = samples;
         return samples;
     }
 

@@ -12,15 +12,15 @@ public sealed class MonthlyCodeHealthReportFormatterTests
 
         var result = sut.Format(new[]
         {
-            new MonthlyCodeHealthRow("2025-09", 15m),
-            new MonthlyCodeHealthRow("2025-10", 30m)
+            new MonthlyCodeHealthRow("2025-09", 15m, 12m),
+            new MonthlyCodeHealthRow("2025-10", 30m, 24m)
         });
 
         Assert.Equal("""
-| year-month | average code health | projects | < 5 | < 7 | < 8 |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 2025-09 | 15 | 0 | 0 | 0 | 0 |
-| 2025-10 | 30 | 0 | 0 | 0 | 0 |
+| year-month | average code health | average hotspot code health | projects | < 5 | < 7 | < 8 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2025-09 | 15 | 12 | 0 | 0 | 0 | 0 |
+| 2025-10 | 30 | 24 | 0 | 0 | 0 | 0 |
 """, result);
     }
 
@@ -30,8 +30,8 @@ public sealed class MonthlyCodeHealthReportFormatterTests
         var sut = new MonthlyCodeHealthReportFormatter();
         var report = new MonthlyCodeHealthReport(
             [
-                new MonthlyCodeHealthRow("2025-09", 15m),
-                new MonthlyCodeHealthRow("2025-10", 30m)
+                new MonthlyCodeHealthRow("2025-09", 15m, 12m),
+                new MonthlyCodeHealthRow("2025-10", 30m, 24m)
             ],
             [
                 new MonthlyCodeHealthThresholdCounts("2025-09", 10, 1, 2, 3),
@@ -68,8 +68,8 @@ public sealed class MonthlyCodeHealthReportFormatterTests
 
         var result = sut.Format(report);
 
-        Assert.Contains("| 2025-09 | 15 | 10 | 1 | 2 | 3 |", result);
-        Assert.Contains("| 2025-10 | 30 | 11 | 4 | 5 | 6 |", result);
+        Assert.Contains("| 2025-09 | 15 | 12 | 10 | 1 | 2 | 3 |", result);
+        Assert.Contains("| 2025-10 | 30 | 24 | 11 | 4 | 5 | 6 |", result);
         Assert.Contains("## Projects declining vs improving in the last 3 months", result);
         Assert.Contains("| 2025-07 to 2025-10 | 4 | 5 | 6 |", result);
         Assert.Contains("### Declining projects", result);

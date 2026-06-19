@@ -26,11 +26,13 @@ public sealed class MonthlyCodeHealthSourceTests
             {
                 Assert.Equal("2025-10", reading.YearMonth);
                 Assert.Equal(6.12m, reading.CodeHealth);
+                Assert.Equal(4.50m, reading.HotspotCodeHealth);
             },
             reading =>
             {
                 Assert.Equal("2025-10", reading.YearMonth);
                 Assert.Equal(4.59m, reading.CodeHealth);
+                Assert.Equal(3.80m, reading.HotspotCodeHealth);
             });
 
         Assert.Contains(
@@ -60,6 +62,7 @@ public sealed class MonthlyCodeHealthSourceTests
         Assert.Single(result);
         Assert.Equal("2025-09", result[0].YearMonth);
         Assert.Equal(5.00m, result[0].CodeHealth);
+        Assert.Equal(4.25m, result[0].HotspotCodeHealth);
     }
 
     private sealed class FakeCodeSceneApi : ICodeSceneApi
@@ -110,6 +113,19 @@ public sealed class MonthlyCodeHealthSourceTests
             return Task.FromResult(payload);
         }
 
+        public Task<string> GetKpiTrendHotspotCodeHealthAsync(int projectId, DateOnly? start = null, DateOnly? end = null, CancellationToken cancellationToken = default)
+        {
+            var payload = projectId == 1
+                ? """
+                  [{"date":"2025-09-15","kpi":4.00},{"date":"2025-10-15","kpi":4.50}]
+                  """
+                : """
+                  [{"date":"2025-09-20","kpi":3.80}]
+                  """;
+
+            return Task.FromResult(payload);
+        }
+
         public Task<string> GetAnalysesByDateAsync(int projectId, DateRange period, CancellationToken cancellationToken = default) => Task.FromResult("{}");
     }
 
@@ -145,6 +161,9 @@ public sealed class MonthlyCodeHealthSourceTests
 
         public Task<string> GetKpiTrendCodeHealthAverageAsync(int projectId, DateOnly? start = null, DateOnly? end = null, CancellationToken cancellationToken = default) =>
             Task.FromResult("""[{"date":"2025-08-10","kpi":5.00}]""");
+
+        public Task<string> GetKpiTrendHotspotCodeHealthAsync(int projectId, DateOnly? start = null, DateOnly? end = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult("""[{"date":"2025-08-10","kpi":4.25}]""");
 
         public Task<string> GetAnalysesByDateAsync(int projectId, DateRange period, CancellationToken cancellationToken = default) => Task.FromResult("{}");
     }

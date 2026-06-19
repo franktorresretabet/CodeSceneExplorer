@@ -12,11 +12,11 @@ public sealed class MonthlyCodeHealthAggregatorTests
 
         var result = sut.Calculate(new[]
         {
-            new MonthlyCodeHealthReading("2025-09", 10),
-            new MonthlyCodeHealthReading("2025-09", 20),
-            new MonthlyCodeHealthReading("2025-09", 30),
-            new MonthlyCodeHealthReading("2025-10", 12),
-            new MonthlyCodeHealthReading("2025-10", 18)
+            new MonthlyCodeHealthReading("2025-09", 10, HotspotCodeHealth: 7),
+            new MonthlyCodeHealthReading("2025-09", 20, HotspotCodeHealth: 11),
+            new MonthlyCodeHealthReading("2025-09", 30, HotspotCodeHealth: 13),
+            new MonthlyCodeHealthReading("2025-10", 12, HotspotCodeHealth: 9),
+            new MonthlyCodeHealthReading("2025-10", 18, HotspotCodeHealth: 15)
         });
 
         Assert.Collection(
@@ -25,11 +25,13 @@ public sealed class MonthlyCodeHealthAggregatorTests
             {
                 Assert.Equal("2025-09", row.YearMonth);
                 Assert.Equal(20m, row.AverageCodeHealth);
+                Assert.Equal(10.33m, row.AverageHotspotCodeHealth);
             },
             row =>
             {
                 Assert.Equal("2025-10", row.YearMonth);
                 Assert.Equal(15m, row.AverageCodeHealth);
+                Assert.Equal(12m, row.AverageHotspotCodeHealth);
             });
     }
 }

@@ -92,11 +92,11 @@ public sealed class MonthlyCodeHealthReportUseCase(
                 .Where(reading => reading.YearMonth == period.Label)
                 .ToList();
 
-            var averageCodeHealth = periodReadings.Count == 0
-                ? 0m
-                : aggregator.Calculate(periodReadings).Single().AverageCodeHealth;
+            var monthlyRow = periodReadings.Count == 0
+                ? new MonthlyCodeHealthRow(period.Label, 0m, 0m)
+                : aggregator.Calculate(periodReadings).Single();
 
-            rows.Add(new MonthlyCodeHealthRow(period.Label, averageCodeHealth));
+            rows.Add(monthlyRow);
         }
 
         return rows;
@@ -212,11 +212,17 @@ public sealed class MonthlyCodeHealthReportUseCase(
                     .Select(monthGroup =>
                     {
                         var name = monthGroup.FirstOrDefault(reading => !string.IsNullOrWhiteSpace(reading.ProjectName))?.ProjectName;
+                        var hotspotReadings = monthGroup
+                            .Where(reading => reading.HotspotCodeHealth.HasValue)
+                            .Select(reading => reading.HotspotCodeHealth!.Value)
+                            .ToList();
+
                         return new MonthlyCodeHealthReading(
                             monthGroup.Key,
                             Math.Round(monthGroup.Average(reading => reading.CodeHealth), 2),
                             group.Key,
-                            name);
+                            name,
+                            hotspotReadings.Count == 0 ? null : Math.Round(hotspotReadings.Average(), 2));
                     })
                     .ToList();
 

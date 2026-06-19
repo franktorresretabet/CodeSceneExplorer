@@ -23,11 +23,13 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
             {
                 Assert.Equal("2025-09", row.YearMonth);
                 Assert.Equal(15m, row.AverageCodeHealth);
+                Assert.Equal(0m, row.AverageHotspotCodeHealth);
             },
             row =>
             {
                 Assert.Equal("2025-10", row.YearMonth);
                 Assert.Equal(30m, row.AverageCodeHealth);
+                Assert.Equal(0m, row.AverageHotspotCodeHealth);
             });
     }
 
@@ -48,11 +50,13 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
             {
                 Assert.Equal("2025-09", row.YearMonth);
                 Assert.Equal(15m, row.AverageCodeHealth);
+                Assert.Equal(0m, row.AverageHotspotCodeHealth);
             },
             row =>
             {
                 Assert.Equal("2025-10", row.YearMonth);
                 Assert.Equal(0m, row.AverageCodeHealth);
+                Assert.Equal(0m, row.AverageHotspotCodeHealth);
             });
     }
 
@@ -74,11 +78,13 @@ public sealed class MonthlyCodeHealthReportUseCaseTests
             {
                 Assert.Equal("2025-09", row.YearMonth);
                 Assert.Equal(6m, row.AverageCodeHealth);
+                Assert.Equal(0m, row.AverageHotspotCodeHealth);
             },
             row =>
             {
                 Assert.Equal("2025-10", row.YearMonth);
                 Assert.Equal(7m, row.AverageCodeHealth);
+                Assert.Equal(0m, row.AverageHotspotCodeHealth);
             });
     }
 

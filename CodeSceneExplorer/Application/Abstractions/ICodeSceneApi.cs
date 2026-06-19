@@ -60,6 +60,12 @@ public interface ICodeSceneApi
         DateOnly? end = null,
         CancellationToken cancellationToken = default);
 
+    Task<string> GetKpiTrendHotspotCodeHealthAsync(
+        int projectId,
+        DateOnly? start = null,
+        DateOnly? end = null,
+        CancellationToken cancellationToken = default);
+
     Task<string> GetAnalysesByDateAsync(
         int projectId,
         DateRange period,

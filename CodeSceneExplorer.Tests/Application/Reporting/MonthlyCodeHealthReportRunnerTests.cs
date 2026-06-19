@@ -17,10 +17,10 @@ public sealed class MonthlyCodeHealthReportRunnerTests
         Assert.Equal(new DateOnly(2025, 9, 1), useCase.Start);
         Assert.Equal(new DateOnly(2026, 6, 11), useCase.End);
         Assert.Equal("""
-| year-month | average code health | projects | < 5 | < 7 | < 8 |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 2025-09 | 15 | 0 | 0 | 0 | 0 |
-| 2025-10 | 30 | 0 | 0 | 0 | 0 |
+| year-month | average code health | average hotspot code health | projects | < 5 | < 7 | < 8 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2025-09 | 15 | 12 | 0 | 0 | 0 | 0 |
+| 2025-10 | 30 | 24 | 0 | 0 | 0 | 0 |
 """, result);
     }
 
@@ -55,8 +55,8 @@ public sealed class MonthlyCodeHealthReportRunnerTests
 
             var report = new MonthlyCodeHealthReport(
                 [
-                    new MonthlyCodeHealthRow("2025-09", 15m),
-                    new MonthlyCodeHealthRow("2025-10", 30m)
+                    new MonthlyCodeHealthRow("2025-09", 15m, 12m),
+                    new MonthlyCodeHealthRow("2025-10", 30m, 24m)
                 ],
                 [],
                 [],
